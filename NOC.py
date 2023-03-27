@@ -1,21 +1,22 @@
 import pyperclip
+import subprocess
+import time
+import sys
+import os
 
 def menu():
     print("""
-              ╔══════════════════════════════════════════╗
-              ║    Bem-vindo ao NOC/SPACE -              ║
-              ║ Selecione o fabricante para configurações║
-              ║                                          ║
-              ║      1) Datacom                          ║
-              ║      2) Nokia                            ║
-              ║      3) Parks                            ║
-              ║      0) Sair                             ║
-              ║                                          ║
-              ║  Digite o número correspondente ao       ║
-              ║   fabricante para acessar opções de      ║
-              ║             configuração                 ║
-              ╚══════════════════════════════════════════
+        Bem-vindo ao Toolkit do NOC
+        Selecione a opção desejada:
+
+        1) Scripts/Datacom
+        2) Scripts/Nokia
+        3) Scripts/Parks
+        4) Teste de latência para jogos online
+        5) Teste de traceroute
+        0) Sair
 """)
+
     menu = int(input("Digite a opção escolhida: "))
 
     print("\n")
@@ -35,6 +36,7 @@ def main():
                                             1) Achar ONU
                                             2) Achar service-port e vlan
                                             3) Provisionamento
+                                            4) Remover ONU|ONT
                                             0) Sair
 
                                             Digite o numero para selecionar a opção desejada: '''))
@@ -86,6 +88,28 @@ commit
                     print("\n")
 
                     pyperclip.copy(script_datacom)
+                elif datacom == 4:
+
+                    print("Bem vindo ao passo a passo de como remover a ONU|ONT em caso de mudança de endereço")
+                    print('''
+                            Primeiro descubra a ONU|ONT do cliente que esta pendente em provisionar
+                            Cole o script na CLI da OLT
+                            '''.strip())
+                    print("\n")
+
+                    script_discovery = (f"show interface gpon 1/1 discovered-onus".strip())
+                    print(script_discovery)
+                    pyperclip.copy(script_discovery)
+
+                    print("\n")
+                    serial = input("Apos descobrir a onu digite a serial do equipamento: ")
+                    print("Agora cole o script a seguir:")
+                    script_onu= (f"show interface gpon 1/1 onu | include {serial}")
+                    print(script_onu)
+                    pyperclip.copy(script_onu)
+                    print("\n")
+
+                    
 
                 elif datacom == 0:
                      break
@@ -224,7 +248,80 @@ copy running-config startup-config
                     break
 
                 else:
-                    print("Opção inválida. Digite um número válido.")   
+                    print("Opção inválida. Digite um número válido.") 
+        if opcao == 4:
+            def test_latency(server):
+                """Envia 10 pacotes ICMP para o servidor e calcula a média do tempo de resposta."""
+                cmd = f"ping {server} -n 10 | findstr /i \"média\""
+                completed_process = subprocess.run(cmd, stdout=subprocess.PIPE, shell=True, text=True)
+                if completed_process.returncode == 0:
+                    latency = float(completed_process.stdout.split("=")[1].split("ms")[0].strip())
+                    return latency
+                else:
+                    return None
+
+            def main_latencia():
+                print("Bem-vindo ao programa de teste de latência para jogos online!")
+                server = input("Digite o endereço do servidor do jogo: ")
+                threshold = int(input("Digite o limite de latência desejado (em ms): "))
+
+                while True:
+                    latency = test_latency(server)
+                    if latency is None:
+                        print("Falha ao se conectar ao servidor.")
+                    else:
+                        print(f"Latência atual: {latency} ms")
+                        if latency > threshold:
+                            print("Atenção: latência alta detectada!")
+                    time.sleep(1) 
+            main_latencia() 
+        if opcao == 5:
+            def traceroute(address, hops=30, timeout=5):
+                # verifica se o sistema operacional é Windows ou Unix-based
+                if sys.platform.startswith('win'):
+                    ping_cmd = f'ping -n 1 -w {int(timeout*1000)} {address}'
+                    tracert_cmd = f'tracert -h {hops} -w {int(timeout*1000)} {address}'
+                else:
+                    ping_cmd = f'ping -c 1 -W {int(timeout)} {address}'
+                    tracert_cmd = f'tracert {address} -m {hops} -w {int(timeout*1000)}'
+
+                print(f"Testando conexão com {address}...\n")
+                response = os.system(ping_cmd)
+                if response == 0:
+                    print(f"\nConexão com {address} bem-sucedida.\n")
+                else:
+                    print(f"\nFalha ao se conectar com {address}.\n")
+                    return
+
+                print(f"Fazendo traceroute para {address}...\n")
+                try:
+                    with os.popen(tracert_cmd) as traceroute_result:
+                        result = traceroute_result.read()
+                        print(f"\nTraceroute completo:\n{result}")
+                        return result
+                except Exception as e:
+                    print(f"\nErro ao executar traceroute:\n{e}")
+                    return None
+                
+
+            def main_tracerout():
+                    print("Bem vindo a ferramenta para analisar rota e perda de pacotes em sites/jogos")
+                    endereco = input("Insira o endereço IP ou domínio do server do site|jogo: ")
+                    hops = int(input("Insira o número máximo de saltos [padrão=30]: ") or 30)
+                    timeout = int(input("Insira o tempo limite em segundos [padrão=5]: ") or 5)
+
+                    result = traceroute(endereco, hops, timeout)
+
+                    if result is not None:
+                        save_option = input("Deseja salvar o resultado em um arquivo? (s/n): ").lower()
+                        if save_option == "s":
+                            filename = input("Insira o nome do arquivo de saída: ")
+                            with open(filename, "w") as file:
+                                file.write(result)
+                                print(f"\nResultado salvo em '{filename}'")
+
+                    print("\nDesenvolvido por Mateus Cesar de Araujo") 
+            main_tracerout()                           
         if opcao == 0:
              break     
 main()
