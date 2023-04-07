@@ -100,16 +100,53 @@ commit
                     script_discovery = (f"show interface gpon 1/1 discovered-onus".strip())
                     print(script_discovery)
                     pyperclip.copy(script_discovery)
-
                     print("\n")
-                    serial = input("Apos descobrir a onu digite a serial do equipamento: ")
-                    print("Agora cole o script a seguir:")
-                    script_onu= (f"show interface gpon 1/1 onu | include {serial}")
-                    print(script_onu)
-                    pyperclip.copy(script_onu)
-                    print("\n")
+                    acesso_passo2 = input("Ja colou o script acima? [S|N]: ")
 
+                    if acesso_passo2 == "S":
+                        
+                        serial = input("Apos descobrir a onu digite a serial do equipamento: ")
+                        print("\n")
+                        print("Agora cole o script a seguir:")
+                        print("\n")
+                        script_serial= (f"show interface gpon 1/1 onu | include {serial}")
+                        print("\n")
+                        print(script_serial)
+                        pyperclip.copy(script_serial)
+                        print("\n")
+                        acesso_passo3 = input("Ja colou o script acima? [S|N]: ")
+                        
                     
+                        if acesso_passo3 == "S":
+
+                            porta = input("Apos descobrir equipamento na OLT digite o numero da porta: ")
+                            onu = input("Em seguida a numeração da ONU|ONT: ")
+                            print("\n")
+                            script_onu = (f'show running-config service-port gpon 1/1/{porta} | context-match "onu {onu}" ')
+
+                            print(script_onu)
+                            pyperclip.copy(script_onu)
+                            print("\n")
+                            acesso_passo4 = input("Ja colou o script acima? [S|N]: ")
+                    
+                            if acesso_passo4 == "S":
+
+                                print("Agora será nescessario que você entre no modo (config)")
+                                print("\n")
+                                service = input("Digite o service-port :")
+                                onu = input("Digite o numero da ONU|ONT:")
+                                print("\n")
+                                final_etapa = (f'''
+no service-port {service}
+no onu {onu}
+                                '''.strip())
+                                print(final_etapa)
+                                pyperclip.copy(final_etapa)
+                                print("\n")
+                                print("Agora cole o comando na OLT e finalize com um commit e aguarde o novo equipamento ou o mesmo provisionar no outro endereço")
+
+                    elif acesso_passo2 == "N" or acesso_passo3 == "N" or acesso_passo4 == "N":
+                        menu()
 
                 elif datacom == 0:
                      break
@@ -132,11 +169,11 @@ commit
                     onu = input("Digite a ONT: ")
                     nome = input("Digite o nome da cliente: ")
                     caixa = input("Digite a caixa/CTO: CX")
-                    serial = input("Digite a serial: ALCL:FC")
+                    serial = input("Digite a serial: ALCL: ")
                     vlan = input("Digite a Vlan: ")
 
                     script_nokia = (f'''
-configure equipment ont interface 1/1/{olt}/{porta}/{onu} sw-ver-pland auto desc1 "{nome}" desc2 "CX{caixa}" sernum ALCL:FC{serial} pland-cfgfile1 disabled optics-hist enable
+configure equipment ont interface 1/1/{olt}/{porta}/{onu} sw-ver-pland auto desc1 "{nome}" desc2 "CX{caixa}" sernum ALCL:{serial} pland-cfgfile1 disabled optics-hist enable
 configure equipment ont interface 1/1/{olt}/{porta}/{onu} admin-state up 
 configure qos interface ont:1/1/{olt}/{porta}/{onu} ds-queue-sharing
 configure equipment ont slot 1/1/{olt}/{porta}/{onu}/14 plndnumdataports 1 plndnumvoiceports 0 planned-card-type veip admin-state up
@@ -277,7 +314,7 @@ copy running-config startup-config
             main_latencia() 
         if opcao == 5:
             def traceroute(address, hops=30, timeout=5):
-                # verifica se o sistema operacional é Windows ou Unix-based
+    # verifica se o sistema operacional é Windows ou Unix-based
                 if sys.platform.startswith('win'):
                     ping_cmd = f'ping -n 1 -w {int(timeout*1000)} {address}'
                     tracert_cmd = f'tracert -h {hops} -w {int(timeout*1000)} {address}'
@@ -302,26 +339,29 @@ copy running-config startup-config
                 except Exception as e:
                     print(f"\nErro ao executar traceroute:\n{e}")
                     return None
-                
+                            
 
             def main_tracerout():
-                    print("Bem vindo a ferramenta para analisar rota e perda de pacotes em sites/jogos")
-                    endereco = input("Insira o endereço IP ou domínio do server do site|jogo: ")
-                    hops = int(input("Insira o número máximo de saltos [padrão=30]: ") or 30)
-                    timeout = int(input("Insira o tempo limite em segundos [padrão=5]: ") or 5)
+                print("Bem vindo a ferramenta para analisar rota e perda de pacotes em sites/jogos")
+                endereco = input("Insira o endereço IP ou domínio do server do site|jogo: ")
+                hops = int(input("Insira o número máximo de saltos [padrão=30]: ") or 30)
+                timeout = int(input("Insira o tempo limite em segundos [padrão=5]: ") or 5)
 
-                    result = traceroute(endereco, hops, timeout)
+                result = traceroute(endereco, hops, timeout)
 
-                    if result is not None:
-                        save_option = input("Deseja salvar o resultado em um arquivo? (s/n): ").lower()
-                        if save_option == "s":
-                            filename = input("Insira o nome do arquivo de saída: ")
-                            with open(filename, "w") as file:
-                                file.write(result)
-                                print(f"\nResultado salvo em '{filename}'")
+                if result is not None:
+                    save_option = input("Deseja salvar o resultado em um arquivo? (s/n): ").lower()
+                    if save_option == "s":
+                        filename = input("Insira o nome do arquivo de saída: ")
+                        desktop_path = os.path.join(os.path.join(os.environ['USERPROFILE']), 'Desktop')
+                        filename = os.path.join(desktop_path, filename)
+                        with open(filename, "w") as file:
+                            file.write(result)
+                            print(f"\nResultado salvo em '{filename}'")
 
-                    print("\nDesenvolvido por Mateus Cesar de Araujo") 
-            main_tracerout()                           
+                print("\nDesenvolvido por Mateus Cesar de Araujo") 
+
+            main_tracerout()
         if opcao == 0:
              break     
 main()
